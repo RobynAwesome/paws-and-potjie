@@ -2,7 +2,7 @@
 
 **A comfort kitchen for dogs and their humans.**
 
-Paws & Potjie is a fictional South African comfort-food experience built for the DEV Frontend Challenge: Comfort Food Edition, with a dog-first interaction layer inspired by the Dog Days prompt.
+Paws & Potjie is a fictional South African comfort-food experience built for the DEV Frontend Challenge: Comfort Food Edition — Perfect Landing.
 
 ## Current POC
 
@@ -12,11 +12,18 @@ The repository is a **TypeScript 7 MERN Adaptive PWA** with a governed Three.js 
 - Three.js 0.185.0 + React Three Fiber/Drei
 - deterministic Human × Dog “Comfort Compass” pairing logic
 - adaptive `lite / balanced / full` runtime tiers
-- CSS fallback on lite devices; 3D scene on balanced/full devices
+- CSS fallback on lite/no-WebGL devices; lazy-loaded 3D scene on balanced/full devices
 - Save-Data and reduced-motion governance
-- install manifest + service worker shell caching
+- install manifest + update-safe service worker shell caching
 - local KPGS scene contract + receipt event
 - Express API + optional MongoDB/Mongoose persistence
+- no GitHub Actions dependency; manual validation is repository-native
+
+## Fast demo / hand-in
+
+**StackBlitz:** `https://stackblitz.com/github/RobynAwesome/paws-and-potjie?startScript=stackblitz`
+
+**DEV post draft:** [`SUBMISSION.md`](SUBMISSION.md)
 
 ## Three.js fork lineage
 
@@ -34,6 +41,12 @@ npm run dev
 Web: `http://localhost:5173`  
 API: `http://localhost:8787/api/health`
 
+Frontend only:
+
+```bash
+npm run dev:web
+```
+
 ## Manual validation — GitHub Actions intentionally not required
 
 ```bash
@@ -41,7 +54,7 @@ npm run validate:manual
 npm run build
 ```
 
-`validate:manual` is dependency-free and checks the TS7 pin, PWA source, KPGS runtime, Three.js fork lineage, adaptive fallback contract, and MERN source. `npm run build` then performs the actual TypeScript checks, Vite build, and POC gate on a machine with dependencies installed.
+`validate:manual` is dependency-free and checks the TS7 pin, PWA source, accessibility contract, KPGS runtime, Three.js fork lineage, adaptive fallback/lazy-loading contract, submission artifact, and MERN source. `npm run build` then performs the actual TypeScript checks, Vite build, and POC gate on a machine with dependencies installed.
 
 ## Governance boundary
 

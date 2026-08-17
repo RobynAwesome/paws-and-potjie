@@ -22,10 +22,12 @@ for (const path of [
   'src/components/PotjieScene.tsx',
   'src/lib/experience.ts',
   'src/lib/kpgs.ts',
+  'src/accessibility.css',
   'public/manifest.webmanifest',
   'public/sw.js',
   'server/index.ts',
   'docs/THREEJS-LINEAGE.md',
+  'SUBMISSION.md',
 ]) await requireFile(path);
 
 const pkg = JSON.parse(await readFile('package.json', 'utf8'));
@@ -36,6 +38,7 @@ assert(pkg.dependencies?.['@react-three/fiber'] === '9.6.0', 'React Three Fiber 
 assert(pkg.dependencies?.['@react-three/drei'] === '10.7.7', 'React Three Drei pinned to 10.7.7');
 assert(pkg.kpgs?.threeSource?.fork === 'RobynAwesome/three.js', 'Three.js fork lineage declared');
 assert(pkg.kpgs?.threeSource?.ref === 'd2ac59a15620ff8696dd55983c1f411c0a3f92ce', 'Three.js fork commit pinned');
+assert(pkg.scripts?.stackblitz === 'vite --host 0.0.0.0', 'One-click browser demo script present');
 
 const scene = await readFile('src/components/PotjieScene.tsx', 'utf8');
 assert(scene.includes("from '@react-three/fiber'"), 'R3F Canvas runtime wired');
@@ -45,14 +48,22 @@ assert(scene.includes("tier === 'full' ? [1, 1.5] : [1, 1.2]"), 'Three.js DPR bu
 assert(scene.includes("frames={tier === 'full' && animate ? Infinity : 1}"), 'Contact shadows constrained outside full tier');
 
 const app = await readFile('src/App.tsx', 'utf8');
+assert(app.includes("lazy(() => import('./components/PotjieScene')"), 'Three.js chunk lazy-loaded');
+assert(app.includes('<Suspense fallback={<PotjieFallback />}>'), 'CSS fallback covers 3D chunk loading');
 assert(app.includes('<PotjieScene tier={profile.tier} animate={animate} />'), 'Adaptive 3D scene mounted');
 assert(app.includes("profile.tier === 'lite'"), 'CSS fallback retained for lite devices');
+assert(app.includes('aria-pressed={mood === item.id}'), 'Human choice exposes selected state');
+assert(app.includes('aria-pressed={energy === item.id}'), 'Dog choice exposes selected state');
 
 const runtime = await readFile('src/lib/experience.ts', 'utf8');
 assert(runtime.includes('saveData'), 'Save-Data policy retained');
 assert(runtime.includes('prefers-reduced-motion'), 'Reduced-motion policy retained');
 assert(runtime.includes('supportsWebGL'), 'WebGL capability gate present');
 assert(runtime.includes("!webgl || saveData"), 'Missing WebGL forces lite tier');
+
+const sw = await readFile('public/sw.js', 'utf8');
+assert(sw.includes("paws-potjie-v2"), 'Service worker cache version advanced');
+assert(sw.includes("request.mode === 'navigate'"), 'Navigation uses network-first update path');
 
 const manifest = JSON.parse(await readFile('public/manifest.webmanifest', 'utf8'));
 assert(manifest.display === 'standalone', 'PWA standalone display retained');

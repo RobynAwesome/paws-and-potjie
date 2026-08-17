@@ -1,0 +1,17 @@
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--tomato);
+  outline-offset: 4px;
+}
+
+@media (forced-colors: active) {
+  .button,
+  .choice-buttons button,
+  .runtime-pill {
+    border: 1px solid ButtonText;
+  }
+
+  .choice-buttons button.selected {
+    outline: 3px solid Highlight;
+  }
+}
