@@ -1,0 +1,16 @@
+.potjie-stage.has-webgl { isolation: isolate; overflow: hidden; border-radius: 36px; min-height: 560px; }
+.potjie-stage.has-webgl .sun-disc { width: min(40vw, 470px); z-index: 1; box-shadow: 0 0 120px rgba(255, 214, 90, .24); }
+.three-stage { position: absolute; inset: -4% -7% -2%; z-index: 4; pointer-events: none; }
+.three-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+.potjie-stage.has-webgl .stage-caption { z-index: 8; background: rgba(244, 234, 216, .72); backdrop-filter: blur(12px); border-radius: 0 14px 14px 0; }
+.potjie-stage.has-webgl::after { content: 'THREE.JS • KPGS ADAPTIVE SCENE'; position: absolute; left: 18px; bottom: 18px; z-index: 8; font-size: 9px; letter-spacing: .15em; font-weight: 700; opacity: .52; }
+html[data-kpgs-tier='balanced'] .three-stage { inset: 0 -10% -4%; }
+@media (max-width: 820px) {
+  .potjie-stage.has-webgl { min-height: 440px; border-radius: 28px; margin-top: -18px; }
+  .potjie-stage.has-webgl .sun-disc { width: min(86vw, 390px); }
+  .three-stage { inset: -2% -17% -4%; }
+  .potjie-stage.has-webgl::after { left: 12px; bottom: 10px; font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .three-stage { pointer-events: none; }
+}
