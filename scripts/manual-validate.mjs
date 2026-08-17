@@ -42,6 +42,7 @@ assert(scene.includes("from '@react-three/fiber'"), 'R3F Canvas runtime wired');
 assert(scene.includes("from 'three'"), 'Three.js runtime imported');
 assert(scene.includes("frameloop={animate ? 'always' : 'demand'}"), 'Three.js frameloop governed by motion budget');
 assert(scene.includes("tier === 'full' ? [1, 1.5] : [1, 1.2]"), 'Three.js DPR budget governed by experience tier');
+assert(scene.includes("frames={tier === 'full' && animate ? Infinity : 1}"), 'Contact shadows constrained outside full tier');
 
 const app = await readFile('src/App.tsx', 'utf8');
 assert(app.includes('<PotjieScene tier={profile.tier} animate={animate} />'), 'Adaptive 3D scene mounted');
@@ -50,6 +51,8 @@ assert(app.includes("profile.tier === 'lite'"), 'CSS fallback retained for lite 
 const runtime = await readFile('src/lib/experience.ts', 'utf8');
 assert(runtime.includes('saveData'), 'Save-Data policy retained');
 assert(runtime.includes('prefers-reduced-motion'), 'Reduced-motion policy retained');
+assert(runtime.includes('supportsWebGL'), 'WebGL capability gate present');
+assert(runtime.includes("!webgl || saveData"), 'Missing WebGL forces lite tier');
 
 const manifest = JSON.parse(await readFile('public/manifest.webmanifest', 'utf8'));
 assert(manifest.display === 'standalone', 'PWA standalone display retained');

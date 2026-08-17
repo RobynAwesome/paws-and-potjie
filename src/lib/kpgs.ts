@@ -9,6 +9,7 @@ export type SceneContract = {
     animate: boolean;
     reducedMotion: boolean;
     saveData: boolean;
+    webgl: boolean;
   };
   boundary: 'INTERACTION ≠ PRODUCT CLAIM';
   receipt: { schema: 'kpgs.scene_receipt.v1'; network: false };
@@ -21,9 +22,10 @@ export function createSceneContract(profile: ExperienceProfile): SceneContract {
     intent: 'experience',
     runtime: {
       tier: profile.tier,
-      animate: !profile.reducedMotion && !profile.saveData,
+      animate: profile.webgl && !profile.reducedMotion && !profile.saveData,
       reducedMotion: profile.reducedMotion,
       saveData: profile.saveData,
+      webgl: profile.webgl,
     },
     boundary: 'INTERACTION ≠ PRODUCT CLAIM',
     receipt: { schema: 'kpgs.scene_receipt.v1', network: false },
@@ -36,6 +38,7 @@ export function mountSceneContract(contract: SceneContract) {
   root.dataset.kpgsScene = contract.scene;
   root.dataset.kpgsTier = contract.runtime.tier;
   root.dataset.kpgsMotion = contract.runtime.animate ? 'full' : 'reduced';
+  root.dataset.kpgsWebgl = contract.runtime.webgl ? 'available' : 'unavailable';
 
   const detail = {
     schema: contract.receipt.schema,
@@ -43,6 +46,7 @@ export function mountSceneContract(contract: SceneContract) {
     ts: new Date().toISOString(),
     scene: contract.scene,
     tier: contract.runtime.tier,
+    webgl: contract.runtime.webgl,
     network: contract.receipt.network,
   };
   performance.mark(`kpgs:scene_mounted:${contract.scene}`);

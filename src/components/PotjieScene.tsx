@@ -131,7 +131,7 @@ export function PotjieScene({ tier, animate }: PotjieSceneProps) {
           scale={5}
           blur={2.4}
           far={3}
-          frames={animate ? Infinity : 1}
+          frames={tier === 'full' && animate ? Infinity : 1}
         />
       </Canvas>
     </div>
