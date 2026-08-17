@@ -30,9 +30,10 @@ for (const path of [
 
 const pkg = JSON.parse(await readFile('package.json', 'utf8'));
 assert(pkg.devDependencies?.typescript === '7.0.2', 'TypeScript 7.0.2 pinned');
-assert(pkg.dependencies?.three === '0.185.0', 'Three.js runtime matches fork version 0.185.0');
-assert(Boolean(pkg.dependencies?.['@react-three/fiber']), 'React Three Fiber present');
-assert(Boolean(pkg.dependencies?.['@react-three/drei']), 'React Three Drei present');
+assert(pkg.dependencies?.three === '0.185.0', 'Three.js runtime pinned to 0.185.0');
+assert(pkg.devDependencies?.['@types/three'] === '0.185.0', 'Three.js types pinned to 0.185.0');
+assert(pkg.dependencies?.['@react-three/fiber'] === '9.6.0', 'React Three Fiber pinned to 9.6.0');
+assert(pkg.dependencies?.['@react-three/drei'] === '10.7.7', 'React Three Drei pinned to 10.7.7');
 assert(pkg.kpgs?.threeSource?.fork === 'RobynAwesome/three.js', 'Three.js fork lineage declared');
 assert(pkg.kpgs?.threeSource?.ref === 'd2ac59a15620ff8696dd55983c1f411c0a3f92ce', 'Three.js fork commit pinned');
 
@@ -73,6 +74,8 @@ console.log(JSON.stringify({
     fork: 'RobynAwesome/three.js',
     ref: 'd2ac59a15620ff8696dd55983c1f411c0a3f92ce',
     runtime: 'three@0.185.0',
+    fiber: '@react-three/fiber@9.6.0',
+    drei: '@react-three/drei@10.7.7',
   },
   boundary: 'MANUAL SOURCE VALIDATION ≠ DEPLOYMENT VALIDATION',
 }, null, 2));

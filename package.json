@@ -18,8 +18,8 @@
     "poc:verify": "node scripts/verify-poc.mjs"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.0",
+    "@react-three/drei": "10.7.7",
+    "@react-three/fiber": "9.6.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "framer-motion": "^12.40.0",
@@ -34,7 +34,7 @@
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@types/three": "^0.185.0",
+    "@types/three": "0.185.0",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "tsx": "^4.20.6",
