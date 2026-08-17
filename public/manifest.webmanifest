@@ -1,0 +1,13 @@
+{
+  "name": "Paws & Potjie",
+  "short_name": "Paws & Potjie",
+  "description": "A comfort kitchen for dogs and their humans.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4ead8",
+  "theme_color": "#23170f",
+  "lang": "en-ZA",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
