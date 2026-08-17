@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { PotjieScene } from './components/PotjieScene';
 import { dogMenu, getPairing, humanMenu, type DogEnergy, type Mood } from './data/menu';
 import { getExperienceProfile } from './lib/experience';
 import { createSceneContract, mountSceneContract } from './lib/kpgs';
+import './three.css';
 
 const moods: { id: Mood; label: string; icon: string }[] = [
   { id: 'slow', label: 'Slow & cosy', icon: '🫕' },
@@ -64,20 +66,26 @@ function App() {
             <a className="button ghost" href="#menu">Read the menu ↓</a>
           </div>
           <div className="trust-row" aria-label="Experience features">
-            <span>Offline-ready</span><span>Mobile-first</span><span>Reduced-motion aware</span>
+            <span>Offline-ready</span><span>Mobile-first</span><span>Adaptive 3D</span><span>Reduced-motion aware</span>
           </div>
         </div>
 
-        <motion.div className="potjie-stage" animate={animate ? { y: [0, -8, 0] } : undefined} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }} aria-label="Illustrated potjie pot with paw-shaped steam">
+        <div className={`potjie-stage ${profile.tier === 'lite' ? '' : 'has-webgl'}`} aria-label="Adaptive potjie scene with paw-shaped steam">
           <div className="sun-disc" />
-          <div className="steam steam-a">🐾</div>
-          <div className="steam steam-b">•</div>
-          <div className="steam steam-c">🐾</div>
-          <div className="pot-lid" />
-          <div className="pot"><span>slow food<br />fast tails</span></div>
-          <div className="pot-leg left" /><div className="pot-leg right" />
-          <div className="stage-caption"><span>TABLE 04</span><strong>Sunday energy</strong></div>
-        </motion.div>
+          {profile.tier === 'lite' ? (
+            <>
+              <div className="steam steam-a">🐾</div>
+              <div className="steam steam-b">•</div>
+              <div className="steam steam-c">🐾</div>
+              <div className="pot-lid" />
+              <div className="pot"><span>slow food<br />fast tails</span></div>
+              <div className="pot-leg left" /><div className="pot-leg right" />
+            </>
+          ) : (
+            <PotjieScene tier={profile.tier} animate={animate} />
+          )}
+          <div className="stage-caption"><span>{profile.tier === 'lite' ? 'LITE / CSS' : `THREE / ${profile.tier.toUpperCase()}`}</span><strong>Sunday energy</strong></div>
+        </div>
       </section>
 
       <section className="marquee" aria-label="Kitchen values"><div>GOOD FOOD • GOOD DOGS • GOOD PEOPLE • NO BORING LANDING PAGES • </div></section>
@@ -144,7 +152,7 @@ function App() {
 
       <footer>
         <div><span className="brand-mark">P&P</span><h2>Bring the human.<br />Bring the hound.</h2></div>
-        <div className="footer-meta"><span>Built in Cape Town 🇿🇦</span><span>TypeScript 7 • React 19 • Adaptive PWA</span><span>KPGS boundary: INTERACTION ≠ PRODUCT CLAIM</span><a href="https://github.com/RobynAwesome/paws-and-potjie">Source ↗</a></div>
+        <div className="footer-meta"><span>Built in Cape Town 🇿🇦</span><span>TypeScript 7 • React 19 • Three.js • Adaptive PWA</span><span>KPGS boundary: INTERACTION ≠ PRODUCT CLAIM</span><a href="https://github.com/RobynAwesome/paws-and-potjie">Source ↗</a></div>
       </footer>
 
       {!online && <div className="offline-toast" role="status">Offline mode active — the kitchen still works. 🐾</div>}
