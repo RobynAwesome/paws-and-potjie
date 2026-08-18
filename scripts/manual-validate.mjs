@@ -28,6 +28,7 @@ for (const path of [
   'public/sw.js',
   'server/index.ts',
   'docs/THREEJS-LINEAGE.md',
+  'docs/PROGRESSIVE-UPDATES.md',
   'SUBMISSION.md',
 ]) await requireFile(path);
 
@@ -91,16 +92,27 @@ assert(progressive.includes("state_class: 'non_authoritative'"), 'Comfort prefer
 assert(progressive.includes("poc_validated: true"), 'Explicit user interaction supplies the bounded POC signal');
 assert(progressive.includes("foc_detected: false"), 'Client request explicitly rejects FOC promotion');
 assert(progressive.includes("selected_by: 'human'"), 'Human selection remains explicit in the update value');
-assert(progressive.includes("localStorage.setItem(STORAGE_KEY"), 'Offline-first comfort state persists locally');
+assert(progressive.includes("localStorage.setItem(STORAGE_KEY"), 'Offline-first comfort state persists locally when browser storage permits it');
+assert(progressive.includes('volatileState = cloneState(state)'), 'Storage-denied browsers retain a bounded volatile fallback');
 assert(progressive.includes('state.queue.push(update)'), 'Updates enter an immutable FIFO queue');
-assert(progressive.includes('state.queue.shift()'), 'Only admitted synchronized updates leave the queue');
+assert(progressive.includes('latest.queue.shift()'), 'Only admitted synchronized updates leave the latest queue state');
+assert(progressive.includes('const latest = readState()'), 'Receipt application re-reads state to preserve clicks queued during an in-flight request');
+assert(progressive.includes('currentIndex !== 0'), 'Out-of-order queue reconciliation fails closed');
 assert(progressive.includes("body.disposition === 'APPLIED' && body.synchronized"), 'Queue clears only on APPLIED + synchronized SWFUS receipt');
 assert(progressive.includes("body.disposition === 'HELD'"), 'HELD remains a distinct progressive state');
 assert(progressive.includes("body.disposition === 'REJECTED'"), 'REJECTED remains a distinct progressive state');
+assert(progressive.includes('Clicking an already selected value is observation, not a new mutation.'), 'No-op selections do not manufacture Progressive Updates');
 assert(!progressive.includes("schema: 'kpgs.swfus.receipt.v1',\n    receipt_id:"), 'Browser does not manufacture SWFUS receipts');
 
 const envExample = await readFile('.env.example', 'utf8');
 assert(envExample.includes('VITE_KPGS_PROGRESSIVE_UPDATE_ENDPOINT='), 'Progressive Update gateway is optional and deployment-configured');
+
+const progressiveDocs = await readFile('docs/PROGRESSIVE-UPDATES.md', 'utf8');
+assert(progressiveDocs.includes('APU)'), 'Progressive Update documentation names APU');
+assert(progressiveDocs.includes('-> #NB'), 'Progressive Update documentation preserves literal #NB');
+assert(progressiveDocs.includes('bounded CRUD'), 'Progressive Update documentation preserves bounded CRUD');
+assert(progressiveDocs.includes('SWFUS'), 'Progressive Update documentation preserves SWFUS');
+assert(progressiveDocs.includes('browser cannot manufacture'), 'Documentation preserves the browser receipt authority boundary');
 
 const sw = await readFile('public/sw.js', 'utf8');
 assert(sw.includes("paws-potjie-v2"), 'Service worker cache version advanced');
