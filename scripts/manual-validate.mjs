@@ -98,9 +98,13 @@ assert(progressive.includes('state.queue.push(update)'), 'Updates enter an immut
 assert(progressive.includes('latest.queue.shift()'), 'Only admitted synchronized updates leave the latest queue state');
 assert(progressive.includes('const latest = readState()'), 'Receipt application re-reads state to preserve clicks queued during an in-flight request');
 assert(progressive.includes('currentIndex !== 0'), 'Out-of-order queue reconciliation fails closed');
+assert(progressive.includes('receipt.correlation_id === update.correlation_id'), 'SWFUS receipt must bind the exact correlation identity');
+assert(progressive.includes('sameOrderedStrings(receipt.evidence_refs, update.evidence_refs)'), 'SWFUS receipt must bind the exact ordered evidence refs');
+assert(progressive.includes("response.ok ? 'rejected' : 'pending'"), 'Invalid successful receipts reject while transport failures remain retryable');
 assert(progressive.includes("body.disposition === 'APPLIED' && body.synchronized"), 'Queue clears only on APPLIED + synchronized SWFUS receipt');
-assert(progressive.includes("body.disposition === 'HELD'"), 'HELD remains a distinct progressive state');
-assert(progressive.includes("body.disposition === 'REJECTED'"), 'REJECTED remains a distinct progressive state');
+assert(progressive.includes("if (!response.ok)"), 'Contradictory non-2xx APPLIED receipts cannot dequeue local state');
+assert(progressive.includes("body.disposition === 'HELD'"), 'HELD remains a distinct progressive state even when transport uses non-2xx');
+assert(progressive.includes("body.disposition === 'REJECTED'"), 'REJECTED remains a distinct progressive state even when transport uses non-2xx');
 assert(progressive.includes('Clicking an already selected value is observation, not a new mutation.'), 'No-op selections do not manufacture Progressive Updates');
 assert(!progressive.includes("schema: 'kpgs.swfus.receipt.v1',\n    receipt_id:"), 'Browser does not manufacture SWFUS receipts');
 
@@ -150,6 +154,7 @@ console.log(JSON.stringify({
     schema: 'kpgs.progressive-update.v1',
     receiptSchema: 'kpgs.swfus.receipt.v1',
     boundaryMarker: '#NB',
+    receiptBinding: ['update_id', 'node_id', 'operation', 'correlation_id', 'evidence_refs'],
   },
   boundary: 'MANUAL SOURCE VALIDATION ≠ DEPLOYMENT VALIDATION',
 }, null, 2));
