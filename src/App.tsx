@@ -3,6 +3,13 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { dogMenu, getPairing, humanMenu, type DogEnergy, type Mood } from './data/menu';
 import { getExperienceProfile } from './lib/experience';
 import { createSceneContract, mountSceneContract } from './lib/kpgs';
+import {
+  loadComfortSync,
+  progressiveUpdateEndpoint,
+  queueComfortChoice,
+  syncComfortQueue,
+  type ComfortSyncState,
+} from './lib/progressiveUpdates';
 import './three.css';
 import './accessibility.css';
 
@@ -20,6 +27,14 @@ const energies: { id: DogEnergy; label: string; icon: string }[] = [
   { id: 'zoomies', label: 'Zoomies', icon: '⚡' },
 ];
 
+const syncLabels: Record<ComfortSyncState, string> = {
+  local: 'SAVED HERE',
+  pending: 'SYNC PENDING',
+  applied: 'SAVED + SYNCED',
+  held: 'SYNC HELD',
+  rejected: 'SYNC BLOCKED',
+};
+
 function PotjieFallback() {
   return (
     <>
@@ -34,22 +49,50 @@ function PotjieFallback() {
 }
 
 function App() {
-  const [mood, setMood] = useState<Mood>('slow');
-  const [energy, setEnergy] = useState<DogEnergy>('stroll');
+  const [comfortSync, setComfortSync] = useState(() => loadComfortSync());
+  const [mood, setMood] = useState<Mood>(() => comfortSync.choice.mood);
+  const [energy, setEnergy] = useState<DogEnergy>(() => comfortSync.choice.energy);
   const [online, setOnline] = useState(() => navigator.onLine);
   const profile = useMemo(() => getExperienceProfile(), []);
   const pairing = useMemo(() => getPairing(mood, energy), [mood, energy]);
   const prefersReducedMotion = useReducedMotion();
   const animate = profile.tier !== 'lite' && profile.webgl && !profile.saveData && !prefersReducedMotion;
+  const hasProgressiveEndpoint = Boolean(progressiveUpdateEndpoint());
+
+  const persistComfortChoice = (nextMood: Mood, nextEnergy: DogEnergy) => {
+    setMood(nextMood);
+    setEnergy(nextEnergy);
+    const queued = queueComfortChoice({ mood: nextMood, energy: nextEnergy });
+    setComfortSync(queued);
+
+    if (navigator.onLine && hasProgressiveEndpoint) {
+      void syncComfortQueue().then(setComfortSync);
+    }
+  };
 
   useEffect(() => {
     mountSceneContract(createSceneContract(profile));
-    const sync = () => setOnline(navigator.onLine);
-    window.addEventListener('online', sync);
-    window.addEventListener('offline', sync);
+
+    const syncConnectivity = () => {
+      const isOnline = navigator.onLine;
+      setOnline(isOnline);
+      if (isOnline && progressiveUpdateEndpoint()) {
+        void syncComfortQueue().then(setComfortSync);
+      }
+    };
+
+    window.addEventListener('online', syncConnectivity);
+    window.addEventListener('offline', syncConnectivity);
+
+    // Reconcile any immutable queued updates after a refresh. This never creates
+    // a new update by itself; only explicit human button presses enqueue state.
+    if (navigator.onLine && progressiveUpdateEndpoint()) {
+      void syncComfortQueue().then(setComfortSync);
+    }
+
     return () => {
-      window.removeEventListener('online', sync);
-      window.removeEventListener('offline', sync);
+      window.removeEventListener('online', syncConnectivity);
+      window.removeEventListener('offline', syncConnectivity);
     };
   }, [profile]);
 
@@ -68,8 +111,8 @@ function App() {
         </nav>
         <span
           className="runtime-pill"
-          title="Adaptive experience tier"
-          aria-label={`${online ? 'Online' : 'Offline'}, ${profile.tier} experience tier`}
+          title={`Adaptive experience tier · ${syncLabels[comfortSync.status]}${comfortSync.queued ? ` · ${comfortSync.queued} queued` : ''}`}
+          aria-label={`${online ? 'Online' : 'Offline'}, ${profile.tier} experience tier, ${syncLabels[comfortSync.status].toLowerCase()}`}
         >
           {online ? '●' : '○'} {profile.tier}
         </span>
@@ -128,7 +171,7 @@ function App() {
                   type="button"
                   aria-pressed={mood === item.id}
                   className={mood === item.id ? 'selected' : ''}
-                  onClick={() => setMood(item.id)}
+                  onClick={() => persistComfortChoice(item.id, energy)}
                 ><span aria-hidden="true">{item.icon}</span>{item.label}</button>
               ))}
             </div>
@@ -143,7 +186,7 @@ function App() {
                   type="button"
                   aria-pressed={energy === item.id}
                   className={energy === item.id ? 'selected' : ''}
-                  onClick={() => setEnergy(item.id)}
+                  onClick={() => persistComfortChoice(mood, item.id)}
                 ><span aria-hidden="true">{item.icon}</span>{item.label}</button>
               ))}
             </div>
@@ -160,7 +203,7 @@ function App() {
             exit={animate ? { opacity: 0, y: -8 } : undefined}
             transition={{ duration: .28 }}
           >
-            <div className="receipt-tag">KITCHEN RECEIPT / MATCH {mood.toUpperCase()} × {energy.toUpperCase()}</div>
+            <div className="receipt-tag">KITCHEN RECEIPT / MATCH {mood.toUpperCase()} × {energy.toUpperCase()} / {syncLabels[comfortSync.status]}</div>
             <p className="pair-line">“{pairing.line}”</p>
             <div className="pair-cards">
               <div><span>FOR YOU</span><strong>{pairing.humanItem.name}</strong><small>{pairing.humanItem.ingredients}</small></div>
@@ -199,7 +242,7 @@ function App() {
         <div className="footer-meta"><span>Built in Cape Town 🇿🇦</span><span>TypeScript 7 • React 19 • Three.js • Adaptive PWA</span><span>KPGS boundary: INTERACTION ≠ PRODUCT CLAIM</span><a href="https://github.com/RobynAwesome/paws-and-potjie">Source ↗</a></div>
       </footer>
 
-      {!online && <div className="offline-toast" role="status">Offline mode active — the kitchen still works. 🐾</div>}
+      {!online && <div className="offline-toast" role="status">Offline mode active — changes stay on this device until the governed sync path is available. 🐾</div>}
     </main>
   );
 }
