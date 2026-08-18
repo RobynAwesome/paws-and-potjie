@@ -104,13 +104,24 @@ const makeId = (prefix: string) => {
   return `${prefix}-${token}`;
 };
 
+const volatileClientId = makeId('client-volatile');
+let volatileState: StoredState | null = null;
+
+function cloneState(state: StoredState): StoredState {
+  return JSON.parse(JSON.stringify(state)) as StoredState;
+}
+
 function getClientId() {
   if (typeof window === 'undefined') return 'ssr';
-  const existing = localStorage.getItem(CLIENT_KEY);
-  if (existing) return existing;
-  const created = makeId('client');
-  localStorage.setItem(CLIENT_KEY, created);
-  return created;
+  try {
+    const existing = localStorage.getItem(CLIENT_KEY);
+    if (existing) return existing;
+    const created = makeId('client');
+    localStorage.setItem(CLIENT_KEY, created);
+    return created;
+  } catch {
+    return volatileClientId;
+  }
 }
 
 function defaultState(): StoredState {
@@ -179,11 +190,8 @@ function isProgressiveUpdate(value: unknown): value is ProgressiveUpdate {
     && item.value?.selected_by === 'human';
 }
 
-function readState(): StoredState {
-  if (typeof window === 'undefined') return defaultState();
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultState();
-
+function parseState(raw: string | null): StoredState | null {
+  if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<StoredState>;
     if (parsed.schema !== 'paws-potjie.progressive-comfort.v1'
@@ -197,7 +205,7 @@ function readState(): StoredState {
       || !Array.isArray(parsed.queue)
       || !parsed.queue.every(isProgressiveUpdate)
       || (parsed.lastReceipt !== null && parsed.lastReceipt !== undefined && !isSwfusReceipt(parsed.lastReceipt))) {
-      return defaultState();
+      return null;
     }
 
     return {
@@ -209,13 +217,39 @@ function readState(): StoredState {
       lastReceipt: parsed.lastReceipt ?? null,
     };
   } catch {
-    return defaultState();
+    return null;
   }
 }
 
+function readState(): StoredState {
+  if (typeof window === 'undefined') return defaultState();
+
+  try {
+    const persisted = parseState(localStorage.getItem(STORAGE_KEY));
+    if (persisted) {
+      volatileState = cloneState(persisted);
+      return persisted;
+    }
+  } catch {
+    // Browser privacy/storage policy may deny localStorage. Keep the app usable
+    // with a process-local fallback; this never upgrades persistence claims.
+  }
+
+  if (volatileState) return cloneState(volatileState);
+  const fresh = defaultState();
+  volatileState = cloneState(fresh);
+  return fresh;
+}
+
 function writeState(state: StoredState) {
+  volatileState = cloneState(state);
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Volatile fallback already holds the state. The UI remains functional but
+    // must not claim durable persistence when the browser denies storage.
+  }
 }
 
 function snapshot(state: StoredState, override?: ComfortSyncState): ComfortSyncSnapshot {
@@ -241,6 +275,12 @@ export function progressiveUpdateEndpoint() {
 export function queueComfortChoice(choice: Omit<ComfortChoice, 'selected_by'>): ComfortSyncSnapshot {
   const state = readState();
   const nextChoice: ComfortChoice = { ...choice, selected_by: 'human' };
+
+  // Clicking an already selected value is observation, not a new mutation.
+  if (state.choice.mood === nextChoice.mood && state.choice.energy === nextChoice.energy) {
+    return snapshot(state, state.queue.length > 0 ? 'pending' : undefined);
+  }
+
   state.choice = nextChoice;
 
   // Queue immutable governed requests. Later clicks never rewrite an update that may
@@ -302,39 +342,50 @@ async function syncComfortQueueInternal(): Promise<ComfortSyncSnapshot> {
         body: JSON.stringify(current),
       });
     } catch {
-      return snapshot(state, 'pending');
+      return snapshot(readState(), 'pending');
     }
 
-    if (!response.ok) return snapshot(state, 'pending');
+    if (!response.ok) return snapshot(readState(), 'pending');
 
     let body: unknown;
     try {
       body = await response.json();
     } catch {
-      return snapshot(state, 'pending');
+      return snapshot(readState(), 'pending');
     }
 
     if (!isSwfusReceipt(body)
       || body.update_id !== current.update_id
       || body.node_id !== current.node_id
       || body.operation !== current.operation) {
-      return snapshot(state, 'rejected');
+      return snapshot(readState(), 'rejected');
     }
 
-    state.lastReceipt = body;
+    // Re-read before applying the receipt so a second human click that was queued
+    // while the request was in flight cannot be lost by a stale local snapshot.
+    const latest = readState();
+    const currentIndex = latest.queue.findIndex((queued) =>
+      queued.update_id === current.update_id
+      && queued.idempotency_key === current.idempotency_key);
+
+    if (currentIndex !== 0) {
+      return snapshot(latest, 'rejected');
+    }
+
+    latest.lastReceipt = body;
 
     if (body.disposition === 'APPLIED' && body.synchronized) {
-      state.queue.shift();
-      state.remoteVersion += 1;
-      writeState(state);
-      state = readState();
+      latest.queue.shift();
+      latest.remoteVersion += 1;
+      writeState(latest);
+      state = latest;
       continue;
     }
 
-    writeState(state);
-    if (body.disposition === 'HELD') return snapshot(state, 'held');
-    if (body.disposition === 'REJECTED') return snapshot(state, 'rejected');
-    return snapshot(state, 'pending');
+    writeState(latest);
+    if (body.disposition === 'HELD') return snapshot(latest, 'held');
+    if (body.disposition === 'REJECTED') return snapshot(latest, 'rejected');
+    return snapshot(latest, 'pending');
   }
 
   writeState(state);
