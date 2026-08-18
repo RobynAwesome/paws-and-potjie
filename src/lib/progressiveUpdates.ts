@@ -97,6 +97,9 @@ const validEnergy = (value: unknown): value is DogEnergy =>
 const nonEmpty = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;
 
+const sameOrderedStrings = (left: readonly string[], right: readonly string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
 const makeId = (prefix: string) => {
   const token = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -149,6 +152,7 @@ function isSwfusReceipt(value: unknown): value is SwfusReceipt {
     && (item.state_digest === null || typeof item.state_digest === 'string')
     && Array.isArray(item.evidence_refs)
     && item.evidence_refs.every(nonEmpty)
+    && new Set(item.evidence_refs).size === item.evidence_refs.length
     && typeof item.correlation_id === 'string'
     && item.boundary_marker === '#NB'
     && typeof item.replayed === 'boolean'
@@ -159,6 +163,14 @@ function isSwfusReceipt(value: unknown): value is SwfusReceipt {
       stage.stage === SWFUS_STAGES[index]
       && nonEmpty(stage.status)
       && typeof stage.reason === 'string');
+}
+
+function receiptMatchesUpdate(receipt: SwfusReceipt, update: ProgressiveUpdate) {
+  return receipt.update_id === update.update_id
+    && receipt.node_id === update.node_id
+    && receipt.operation === update.operation
+    && receipt.correlation_id === update.correlation_id
+    && sameOrderedStrings(receipt.evidence_refs, update.evidence_refs);
 }
 
 function isProgressiveUpdate(value: unknown): value is ProgressiveUpdate {
@@ -181,6 +193,7 @@ function isProgressiveUpdate(value: unknown): value is ProgressiveUpdate {
     && Array.isArray(item.evidence_refs)
     && item.evidence_refs.length > 0
     && item.evidence_refs.every(nonEmpty)
+    && new Set(item.evidence_refs).size === item.evidence_refs.length
     && item.boundary_marker === '#NB'
     && (item.expected_version === null
       || (Number.isInteger(item.expected_version) && (item.expected_version ?? -1) >= 0))
@@ -345,8 +358,6 @@ async function syncComfortQueueInternal(): Promise<ComfortSyncSnapshot> {
       return snapshot(readState(), 'pending');
     }
 
-    if (!response.ok) return snapshot(readState(), 'pending');
-
     let body: unknown;
     try {
       body = await response.json();
@@ -354,11 +365,8 @@ async function syncComfortQueueInternal(): Promise<ComfortSyncSnapshot> {
       return snapshot(readState(), 'pending');
     }
 
-    if (!isSwfusReceipt(body)
-      || body.update_id !== current.update_id
-      || body.node_id !== current.node_id
-      || body.operation !== current.operation) {
-      return snapshot(readState(), 'rejected');
+    if (!isSwfusReceipt(body) || !receiptMatchesUpdate(body, current)) {
+      return snapshot(readState(), response.ok ? 'rejected' : 'pending');
     }
 
     // Re-read before applying the receipt so a second human click that was queued
@@ -375,6 +383,10 @@ async function syncComfortQueueInternal(): Promise<ComfortSyncSnapshot> {
     latest.lastReceipt = body;
 
     if (body.disposition === 'APPLIED' && body.synchronized) {
+      if (!response.ok) {
+        writeState(latest);
+        return snapshot(latest, 'pending');
+      }
       latest.queue.shift();
       latest.remoteVersion += 1;
       writeState(latest);
