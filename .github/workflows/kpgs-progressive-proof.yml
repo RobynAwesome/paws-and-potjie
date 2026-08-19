@@ -1,0 +1,68 @@
+name: KPGS Progressive Comfort Proof
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'docs/PROGRESSIVE-UPDATES.md'
+      - 'package.json'
+      - '.env.example'
+      - '.github/workflows/kpgs-progressive-proof.yml'
+  push:
+    branches: [main, feat/canonical-progressive-comfort]
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'docs/PROGRESSIVE-UPDATES.md'
+      - 'package.json'
+      - '.env.example'
+      - '.github/workflows/kpgs-progressive-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paws-potjie-kpgs-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    name: Source · TypeScript 7 · Build · POC
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install resolved dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Dependency health
+        run: npm ls --depth=0
+
+      - name: Canonical source validation
+        run: npm run validate:manual
+
+      - name: TypeScript 7 typecheck
+        run: npm run typecheck
+
+      - name: Production build + POC verifier
+        run: npm run build
+
+      - name: Proof boundary
+        run: |
+          echo 'Exact-head source/build proof only.'
+          echo 'No live Hub/DNS/deployment receipt is manufactured by this workflow.'
