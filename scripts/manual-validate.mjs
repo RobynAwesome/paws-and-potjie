@@ -30,6 +30,7 @@ for (const path of [
   'docs/THREEJS-LINEAGE.md',
   'docs/PROGRESSIVE-UPDATES.md',
   'SUBMISSION.md',
+  '.github/workflows/kpgs-progressive-proof.yml',
 ]) await requireFile(path);
 
 const pkg = JSON.parse(await readFile('package.json', 'utf8'));
@@ -125,20 +126,13 @@ assert(sw.includes("request.mode === 'navigate'"), 'Navigation uses network-firs
 const manifest = JSON.parse(await readFile('public/manifest.webmanifest', 'utf8'));
 assert(manifest.display === 'standalone', 'PWA standalone display retained');
 
-try {
-  await access('.github/workflows/ci.yml');
-  failures.push('GitHub Actions workflow still present; manual validation mode requires it removed');
-} catch {
-  checks.push('GitHub Actions workflow absent');
-}
-
 if (failures.length) {
-  console.error(JSON.stringify({ schema: 'kpgs.manual_validation_receipt.v1', status: 'FAIL', failures, checks }, null, 2));
+  console.error(JSON.stringify({ schema: 'kpgs.source_validation_receipt.v1', status: 'FAIL', failures, checks }, null, 2));
   process.exit(1);
 }
 
 console.log(JSON.stringify({
-  schema: 'kpgs.manual_validation_receipt.v1',
+  schema: 'kpgs.source_validation_receipt.v1',
   status: 'PASS',
   checks,
   three: {
@@ -156,5 +150,9 @@ console.log(JSON.stringify({
     boundaryMarker: '#NB',
     receiptBinding: ['update_id', 'node_id', 'operation', 'correlation_id', 'evidence_refs'],
   },
-  boundary: 'MANUAL SOURCE VALIDATION ≠ DEPLOYMENT VALIDATION',
+  validation: {
+    exactHeadCI: '.github/workflows/kpgs-progressive-proof.yml',
+    deploymentReceiptClaimed: false,
+  },
+  boundary: 'SOURCE / CI VALIDATION != DEPLOYMENT VALIDATION',
 }, null, 2));
