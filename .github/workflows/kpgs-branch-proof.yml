@@ -1,6 +1,10 @@
 name: KPGS Comfort Branch Proof
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore: []
   push:
     branches:
       - feat/canonical-progressive-comfort
