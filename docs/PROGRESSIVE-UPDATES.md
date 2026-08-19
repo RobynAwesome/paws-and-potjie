@@ -64,7 +64,7 @@ If the remote non-authoritative projection is newer, missing, restarted, or othe
 
 ## Browser authority boundary
 
-The browser may construct `kpgs.progressive-update.v1` because the human explicitly selected a bounded preference. It may **not** construct a fake `kpgs.swfus.receipt.v1`.
+The browser may construct `kpgs.progressive-update.v1` because the human explicitly selected a bounded preference. It may **not** construct a fake `kpgs.swfus.receipt.v1`; in KPGS terms, **the browser cannot manufacture a SWFUS receipt**.
 
 Only a returned receipt that passes the exact schema/stage validation and matches the queued update ID, node ID and operation can clear the queue.
 
