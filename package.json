@@ -48,6 +48,13 @@
       "ref": "d2ac59a15620ff8696dd55983c1f411c0a3f92ce",
       "version": "0.185.0",
       "runtime": "three@0.185.0"
+    },
+    "progressiveUpdates": {
+      "canonicalRepository": "RobynAwesome/Introduction-to-MCP",
+      "canonicalCommit": "6eeb285d0775a7e74ceadc06e32b4068fcfbc595",
+      "schema": "kpgs.progressive-update.v1",
+      "receiptSchema": "kpgs.swfus.receipt.v1",
+      "boundaryMarker": "#NB"
     }
   }
 }
